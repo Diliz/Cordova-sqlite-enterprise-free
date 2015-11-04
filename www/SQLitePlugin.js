@@ -91,7 +91,6 @@ Contact for commercial license: info@litehelpers.net
     this.openSuccess = openSuccess;
     this.openError = openError;
     this.openSuccess || (this.openSuccess = function() {
-      console.log("DB opened: " + dbname);
     });
     this.openError || (this.openError = function(e) {
       console.log(e.message);
@@ -115,12 +114,6 @@ Contact for commercial license: info@litehelpers.net
     txLocks[this.dbname].queue.push(t);
     if (this.dbname in this.openDBs && this.openDBs[this.dbname] !== DB_STATE_INIT) {
       this.startNextTransaction();
-    } else {
-      if (this.dbname in this.openDBs) {
-        console.log('new transaction is waiting for open operation');
-      } else {
-        console.log('database is closed, new transaction is [stuck] waiting until db is opened again!');
-      }
     }
   };
 
@@ -195,20 +188,16 @@ Contact for commercial license: info@litehelpers.net
   SQLitePlugin.prototype.open = function(success, error) {
     var openerrorcb, opensuccesscb;
     if (this.dbname in this.openDBs) {
-      console.log('database already open: ' + this.dbname);
       nextTick((function(_this) {
         return function() {
           success(_this);
         };
       })(this));
     } else {
-      console.log('OPEN database: ' + this.dbname);
       opensuccesscb = (function(_this) {
         return function(a1) {
           var txLock;
-          console.log('OPEN database: ' + _this.dbname + ' OK');
           if (!!a1 && a1 === 'a1') {
-            console.log('Detected Android/iOS version with flat JSON interface');
             useflatjson = true;
           }
           if (!_this.openDBs[_this.dbname]) {
@@ -717,6 +706,15 @@ Contact for commercial license: info@litehelpers.net
       }
       dblocation = !!openargs.location ? dblocations[openargs.location] : null;
       openargs.dblocation = dblocation || dblocations[0];
+      if (!!openargs.externalStorage && openargs.externalStorage === 1) {
+        openargs.externalStorage = 1;
+      }
+      if (!!openargs.externalStorage && openargs.externalStorage === 2) {
+        openargs.externalStorage = 2;
+      }
+      if (!!openargs.customPath && (typeof(openargs.customPath) == "String" || openargs.customPath instanceof String) && openargs.customPath != "" && openargs.customPath != null) {
+        openargs.customPath = openargs.customPath;
+      }
       return new SQLitePlugin(openargs, okcb, errorcb);
     }),
     deleteDb: function(first, success, error) {
@@ -735,6 +733,23 @@ Contact for commercial license: info@litehelpers.net
       }
       delete SQLitePlugin.prototype.openDBs[args.path];
       return cordova.exec(success, error, "SQLitePlugin", "delete", [args]);
+    },
+    closedb: function(first, success, error) {
+      var args, dblocation;
+      args = {};
+      if (first.constructor === String) {
+        args.path = first;
+        args.dblocation = dblocations[0];
+      } else {
+        if (!(first && first['name'])) {
+          throw new Error("Please specify db name");
+        }
+        args.path = first.name;
+        dblocation = !!first.location ? dblocations[first.location] : null;
+        args.dblocation = dblocation || dblocations[0];
+      }
+      delete SQLitePlugin.prototype.openDBs[args.path];
+      return cordova.exec(success, error, "SQLitePlugin", "close", [args]);
     }
   };
 
@@ -743,6 +758,7 @@ Contact for commercial license: info@litehelpers.net
       isSQLitePlugin: true
     },
     openDatabase: SQLiteFactory.opendb,
+    closeDatabase: SQLiteFactory.closedb,
     deleteDatabase: SQLiteFactory.deleteDb
   };
 

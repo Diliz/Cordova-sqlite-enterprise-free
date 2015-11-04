@@ -191,12 +191,27 @@ public class SQLitePlugin extends CordovaPlugin {
      *
      * @param dbName   The name of the database file
      */
-    private SQLiteConnection openDatabase(String dbname, CallbackContext cbc) throws Exception {
+    private SQLiteConnection openDatabase(String dbname, String cpath, Integer external, CallbackContext cbc) throws Exception {
         try {
             // ASSUMPTION: no db (connection/handle) is already stored in the map
             // [should be true according to the code in DBRunner.run()]
 
-            File dbfile = this.cordova.getActivity().getDatabasePath(dbname);
+            File dbfile;
+            String state = android.os.Environment.getExternalStorageState();
+            if (!cpath.isEmpty() && cpath != null) {
+                dbfile = new File(cpath, dbname);
+            }
+            else {
+                if (android.os.Environment.MEDIA_MOUNTED.equals(state) && external == 1) {
+                    dbfile = new File(this.cordova.getActivity().getExternalCacheDir(), dbname);
+                }
+                else if (android.os.Environment.MEDIA_MOUNTED.equals(state) && external == 2){
+                    dbfile = new File(this.cordova.getActivity().getExternalFilesDir(null), dbname);
+                }
+                else {
+                    dbfile = this.cordova.getActivity().getDatabasePath(dbname);
+                }
+            }
 
             if (!dbfile.exists()) {
                 dbfile.getParentFile().mkdirs();
@@ -469,6 +484,8 @@ public class SQLitePlugin extends CordovaPlugin {
 
     private class DBRunner implements Runnable {
         final String dbname;
+        private Integer external;
+        private String cpath;
 
         final BlockingQueue<DBQuery> q;
         final CallbackContext openCbc;
@@ -477,6 +494,8 @@ public class SQLitePlugin extends CordovaPlugin {
 
         DBRunner(final String dbname, JSONObject options, CallbackContext cbc) {
             this.dbname = dbname;
+            this.external = options.optInt("externalStorage");
+            this.cpath = options.optString("customPath");
 
             this.q = new LinkedBlockingQueue<DBQuery>();
             this.openCbc = cbc;
@@ -484,7 +503,7 @@ public class SQLitePlugin extends CordovaPlugin {
 
         public void run() {
             try {
-                this.mydbc = openDatabase(dbname, this.openCbc);
+                this.mydbc = openDatabase(dbname, this.cpath, this.external, this.openCbc);
             } catch (Exception e) {
                 Log.e(SQLitePlugin.class.getSimpleName(), "unexpected error, stopping db thread", e);
                 dbrmap.remove(dbname);
