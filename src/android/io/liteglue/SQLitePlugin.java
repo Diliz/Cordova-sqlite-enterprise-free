@@ -130,7 +130,7 @@ public class SQLitePlugin extends CordovaPlugin {
                 DBRunner r = dbrmap.get(dbname);
                 if (r != null) {
                     try {
-                        r.q.put(q); 
+                        r.q.put(q);
                     } catch(Exception e) {
                         Log.e(SQLitePlugin.class.getSimpleName(), "couldn't add to queue", e);
                         cbc.error("couldn't add to queue");
@@ -210,7 +210,7 @@ public class SQLitePlugin extends CordovaPlugin {
                     } else {
                         extDirs = this.cordova.getActivity().getExternalFilesDirs(null);
                     }
-                    if (extDirs.length > 1) {
+                    if (extDirs.length > 1 && extDirs[1] != null) {
                         pathDir = extDirs[1].getAbsolutePath();
                     } else {
                         pathDir = extDirs[0].getAbsolutePath();
@@ -389,9 +389,9 @@ public class SQLitePlugin extends CordovaPlugin {
                     myStatement.bindNull(i + 1);
                 } else {
                     Object p = paramsAsJson.get(jsonParamIndex);
-                    if (p instanceof Float || p instanceof Double) 
+                    if (p instanceof Float || p instanceof Double)
                         myStatement.bindDouble(i + 1, paramsAsJson.getDouble(jsonParamIndex));
-                    else if (p instanceof Number) 
+                    else if (p instanceof Number)
                         myStatement.bindLong(i + 1, paramsAsJson.getLong(jsonParamIndex));
                     else
                         myStatement.bindTextNativeString(i + 1, paramsAsJson.getString(jsonParamIndex));
@@ -552,7 +552,7 @@ public class SQLitePlugin extends CordovaPlugin {
                             Log.e(SQLitePlugin.class.getSimpleName(), "couldn't delete database", e);
                             dbq.cbc.error("couldn't delete database: " + e);
                         }
-                    }                    
+                    }
                 } catch (Exception e) {
                     Log.e(SQLitePlugin.class.getSimpleName(), "couldn't close database", e);
                     if (dbq.cbc != null) {
